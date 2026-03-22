@@ -7,6 +7,7 @@ EXAMPLES_DIR = PROMPTS_DIR / "examples"
 
 
 def load_prompt(name: str) -> str:
+    """Load a prompt by name and append optional examples file if present."""
     prompt_path = PROMPTS_DIR / f"{name}.md"
     if not prompt_path.exists():
         raise FileNotFoundError(f"Prompt file not found: {prompt_path}")

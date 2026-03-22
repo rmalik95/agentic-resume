@@ -1,7 +1,7 @@
 # ResumAI Custom Instructions
 
 Use these instructions for all future development tasks in this repository.
-Source of truth: [ResumAI_PRD.pdf](ResumAI_PRD.pdf).
+Source of truth: [ResumAI_PRD.pdf]
 
 ## Non-Negotiable Constraints
 

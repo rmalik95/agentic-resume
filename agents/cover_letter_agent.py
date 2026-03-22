@@ -27,6 +27,11 @@ class CoverLetterAgent(BaseAgent):
             return ""
 
     def run(self, state: ResumeState) -> ResumeState:
+        """Generate a tailored cover letter, optionally using company web context.
+
+        Example:
+            state = CoverLetterAgent().run(state)
+        """
         company_context = ""
         if state.company_url:
             print(f"  Fetching company context from {state.company_url}...")

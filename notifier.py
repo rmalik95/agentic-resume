@@ -78,6 +78,7 @@ def _send_email(
     score_before: int,
     score_after: int,
 ) -> None:
+    """Send completion email with generated PDFs attached."""
     service = build("gmail", "v1", credentials=creds)
 
     msg = MIMEMultipart()
@@ -113,6 +114,7 @@ def _send_email(
 
 
 def _create_followup_event(creds: Credentials, job_title: str, company: str) -> None:
+    """Create a 5-day follow-up reminder event in primary calendar."""
     service = build("calendar", "v3", credentials=creds)
     followup_date = datetime.utcnow() + timedelta(days=5)
     event = {

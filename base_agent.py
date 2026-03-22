@@ -5,9 +5,12 @@ from utils.prompt_loader import load_prompt
 
 
 class BaseAgent(ABC):
+    """Base class that loads a system prompt for each concrete agent."""
+
     prompt_name: str
 
     def __init__(self) -> None:
+        """Initialize prompt text from prompts directory."""
         if not getattr(self, "prompt_name", None):
             raise ValueError("Agent must define prompt_name")
         self.system_prompt = load_prompt(self.prompt_name)

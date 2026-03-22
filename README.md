@@ -1,23 +1,39 @@
 # Agentic Resume Optimiser
 
-ResumAI baseline setup for pre-agent development.
+ResumAI PRD-aligned local multi-agent resume pipeline.
 
 ## Implemented From PRD
 
 The following code-side tasks are now implemented in this repository:
 
 - Repo instruction policy at `.github/copilot-instructions.md`
-- Cover-letter web fetch support scaffolding:
-	- `state.py` with `company_url` and `company_context`
-	- `agents/cover_letter_agent.py` with optional URL fetch (`requests` + HTML strip)
-	- `main.py` support for `--company-url`
-- Google delivery notifier scaffolding:
-	- `notifier.py` for Gmail send + Calendar follow-up event
-	- `main.py` support for `--job-title`, `--company`, `--no-notify`
-- Dependency and local setup scaffolding:
-	- `requirements.txt`
-	- `.env.example`
-	- `.gitignore` includes `credentials.json`, `token.json`, `outputs/`
+- Full agent pipeline:
+	- `agents/match_score_agent.py`
+	- `agents/experience_optimizer_agent.py`
+	- `agents/ats_checker_agent.py`
+	- `agents/cover_letter_agent.py` (with optional `--company-url` web context fetch)
+	- `agents/latex_generator_agent.py`
+	- `agents/renderer_agent.py` (LaTeX.Online -> pdflatex -> raw `.tex` fallback)
+- Full shared state and orchestration:
+	- `state.py`
+	- `main.py`
+	- `input_collector.py` (`END`-terminated multiline terminal input)
+- Prompt-as-config implementation:
+	- `prompts/match_score.md`
+	- `prompts/experience_optimizer.md`
+	- `prompts/ats_checker.md`
+	- `prompts/cover_letter.md`
+	- `prompts/latex_generator.md`
+- Support modules:
+	- `llm_client.py`
+	- `base_agent.py`
+	- `utils/prompt_loader.py`
+- Notification integration:
+	- `notifier.py` for Gmail + Calendar post-run delivery
+- Validation tests:
+	- `tests/test_state_contract.py`
+	- `tests/test_prompt_loader.py`
+	- `tests/test_match_score_agent.py`
 
 ## Manual Steps Required From You
 
@@ -70,6 +86,12 @@ python main.py \
 
 ### Notify with Gmail + Calendar (omit --no-notify)
 
+
+### Full interactive pipeline (END-terminated input)
+
+```bash
+python main.py --no-notify
+```
 ```bash
 python main.py \
 	--resume-file sample_resume.txt \

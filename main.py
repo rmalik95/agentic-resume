@@ -1,24 +1,87 @@
 import argparse
 
+from agents.ats_checker_agent import ATSCheckerAgent
 from agents.cover_letter_agent import CoverLetterAgent
+from agents.experience_optimizer_agent import ExperienceOptimizerAgent
+from agents.latex_generator_agent import LaTeXGeneratorAgent
+from agents.match_score_agent import MatchScoreAgent
+from agents.renderer_agent import RendererAgent
+from input_collector import collect_multiline_input
 from state import ResumeState
 
 
 def print_report(state: ResumeState) -> None:
-    print("\nRun summary")
-    print(f"  company_url: {state.company_url or 'not provided'}")
-    print(f"  company_context: {'yes' if state.company_context else 'no'}")
-    print(f"  cover_letter_generated: {'yes' if state.cover_letter else 'no'}")
+    """Print PRD-style summary report.
+
+    Example:
+        print_report(state)
+    """
+    before = state.match_score_before or 0
+    after = state.match_score_after or 0
+    delta = after - before
+
+    print("=" * 60)
+    print("RESULTS")
+    print("=" * 60)
+    print(f"Score before optimisation : {before}/100")
+    print(f"Score after optimisation  : {after}/100 ({delta:+d} points)")
+    print(f"Missing keywords added    : {', '.join(state.missing_keywords) or 'None'}")
+    print(f"ATS verdict               : {state.ats_verdict or 'Unknown'}")
+    print(f"ATS issues                : {state.ats_fixes or 'None'}")
+    print(f"Bullets flagged [REVIEW]  : {len(state.review_flags)}")
+    if state.review_flags:
+        print("-" * 60)
+        print("Bullets requiring your review:")
+        for line in state.review_flags:
+            print(f"- {line}")
+    print("-" * 60)
+    print(f"Resume PDF                : {state.pdf_resume_path or 'not generated'}")
+    print(f"Cover letter PDF          : {state.pdf_cover_letter_path or 'not generated'}")
+    if state.render_error:
+        print(f"Render error              : {state.render_error}")
+    print("=" * 60)
 
 
 def _load_text(path: str | None) -> str:
+    """Read a UTF-8 text file if path is provided.
+
+    Example:
+        content = _load_text("sample_resume.txt")
+    """
     if not path:
         return ""
     with open(path, "r", encoding="utf-8") as file_handle:
         return file_handle.read().strip()
 
 
+def _collect_inputs(args: argparse.Namespace) -> tuple[str, str]:
+    """Collect resume and job description from files or terminal multiline input.
+
+    Example:
+        resume, jd = _collect_inputs(args)
+    """
+    resume_text = _load_text(args.resume_file)
+    job_description = _load_text(args.job_file)
+
+    if resume_text and job_description:
+        return resume_text, job_description
+
+    print("=" * 60)
+    print("ResumAI - AI-powered resume optimiser")
+    print("=" * 60)
+    if not resume_text:
+        resume_text = collect_multiline_input("STEP 1: Paste your resume text")
+    if not job_description:
+        job_description = collect_multiline_input("STEP 2: Paste the job description")
+    return resume_text, job_description
+
+
 def main() -> None:
+    """CLI entry point for full sequential PRD pipeline.
+
+    Example:
+        main()
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--resume-file", type=str, default=None)
     parser.add_argument("--job-file", type=str, default=None)
@@ -33,14 +96,43 @@ def main() -> None:
     parser.add_argument("--no-notify", action="store_true")
     args = parser.parse_args()
 
-    state = ResumeState(
-        resume_text=_load_text(args.resume_file),
-        job_description=_load_text(args.job_file),
-    )
+    resume_text, job_description = _collect_inputs(args)
+    print("Inputs received. Starting pipeline...")
+
+    state = ResumeState(resume_text=resume_text, job_description=job_description)
     state.company_url = args.company_url
 
-    if state.resume_text and state.job_description:
-        state = CoverLetterAgent().run(state)
+    print("[MatchScoreAgent] running...")
+    state = MatchScoreAgent().run(state)
+    print("[MatchScoreAgent] done.")
+    print(f"(raw score: {state.match_score_before or 0}/100)")
+
+    print("[ExperienceOptimizerAgent] running...")
+    state = ExperienceOptimizerAgent().run(state)
+    print("[ExperienceOptimizerAgent] done.")
+    print(f"({len(state.review_flags)} bullets flagged [REVIEW])")
+
+    print("[ATSCheckerAgent] running...")
+    state = ATSCheckerAgent().run(state)
+    print("[ATSCheckerAgent] done.")
+    print(f"(verdict: {state.ats_verdict or 'Unknown'})")
+
+    print("[CoverLetterAgent] running...")
+    state = CoverLetterAgent().run(state)
+    print("[CoverLetterAgent] done.")
+
+    print("[MatchScoreAgent] running...")
+    state = MatchScoreAgent().run(state)
+    print("[MatchScoreAgent] done.")
+    print(f"(optimised score: {state.match_score_after or 0}/100)")
+
+    print("[LaTeXGeneratorAgent] running...")
+    state = LaTeXGeneratorAgent().run(state)
+    print("[LaTeXGeneratorAgent] done.")
+
+    print("[RendererAgent] running...")
+    state = RendererAgent().run(state)
+    print("[RendererAgent] done.")
 
     print_report(state)
 
