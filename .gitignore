@@ -15,6 +15,8 @@
 .env.*
 !.env.example
 *.local
+credentials.json
+token.json
 
 # Logs
 logs/
@@ -33,6 +35,7 @@ build/
 out/
 .cache/
 coverage/
+outputs/
 
 # Python
 __pycache__/

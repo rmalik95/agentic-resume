@@ -1,0 +1,26 @@
+{
+  "name": "agentic-resume",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "chub:help": "chub help",
+    "chub:update": "chub update",
+    "chub:search": "chub search",
+    "chub:get": "chub get",
+    "chub:annotate": "chub annotate",
+    "chub:feedback": "chub feedback",
+    "test": "echo \"No tests configured\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github-personal:rmalik95/agentic-resume.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@aisuite/chub": "^0.1.3"
+  }
+}
