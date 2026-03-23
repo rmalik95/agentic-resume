@@ -2,6 +2,7 @@ import logging
 import shutil
 import subprocess
 import tempfile
+import urllib.parse
 from pathlib import Path
 
 import requests
@@ -51,26 +52,49 @@ class RendererAgent:
         if self._render_with_pdflatex(latex_code, output_path):
             return True
 
+        normalized = self._normalize_latex_for_compile(latex_code)
+        if normalized != latex_code:
+            logger.info("Retrying %s render with normalized LaTeX", stem)
+            if self._render_with_latexonline(normalized, output_path):
+                return True
+            if self._render_with_pdflatex(normalized, output_path):
+                return True
+
+        if output_path.exists():
+            output_path.unlink()
+
         fallback_tex = OUTPUTS_DIR / f"{stem}_fallback.tex"
         fallback_tex.write_text(latex_code, encoding="utf-8")
         logger.error("Rendering failed for %s; fallback tex saved at %s", stem, fallback_tex)
         return False
 
+    def _is_valid_pdf_bytes(self, content: bytes) -> bool:
+        return len(content) > 100 and content.startswith(b"%PDF-")
+
+    def _normalize_latex_for_compile(self, latex_code: str) -> str:
+        """Apply minimal normalization for known compile conflicts."""
+        if "\\documentclass" in latex_code and "moderncv" in latex_code and "\\usepackage{hyperref}" in latex_code:
+            # moderncv loads hyperref internally; duplicate import can trigger option clash.
+            return latex_code.replace("\\usepackage{hyperref}\n", "")
+        return latex_code
+
     def _render_with_latexonline(self, latex_code: str, output_path: Path) -> bool:
         try:
-            response = requests.post(
-                "https://latexonline.cc/compile",
-                data={"text": latex_code},
-                timeout=30,
-            )
+            encoded = urllib.parse.quote(latex_code, safe="")
+            response = requests.get(f"https://latexonline.cc/compile?text={encoded}", timeout=30)
             content_type = response.headers.get("content-type", "")
-            if response.status_code == 200 and "application/pdf" in content_type.lower():
+            if (
+                response.status_code == 200
+                and "application/pdf" in content_type.lower()
+                and self._is_valid_pdf_bytes(response.content)
+            ):
                 output_path.write_bytes(response.content)
                 return True
             logger.warning(
-                "LaTeX.Online render failed status=%s content_type=%s",
+                "LaTeX.Online render failed status=%s content_type=%s body_prefix=%r",
                 response.status_code,
                 content_type,
+                response.content[:120],
             )
         except Exception as exc:
             logger.warning("LaTeX.Online request failed: %s", exc)
@@ -94,8 +118,10 @@ class RendererAgent:
 
                 pdf_file = tmp_path / "document.pdf"
                 if first.returncode == 0 and second.returncode == 0 and pdf_file.exists():
-                    output_path.write_bytes(pdf_file.read_bytes())
-                    return True
+                    pdf_content = pdf_file.read_bytes()
+                    if self._is_valid_pdf_bytes(pdf_content):
+                        output_path.write_bytes(pdf_content)
+                        return True
 
                 logger.warning(
                     "pdflatex failed with return codes %s/%s",

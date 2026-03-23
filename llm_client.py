@@ -8,29 +8,30 @@ from dotenv import load_dotenv
 MODEL = "claude-haiku-4-5-20251001"
 logger = logging.getLogger(__name__)
 
+load_dotenv()
+_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+CLIENT = Anthropic(api_key=_API_KEY) if _API_KEY else None
 
-def call_llm(system_prompt: str, user_message: str, max_tokens: int = 1500) -> str:
+
+def call_llm(system: str, user_message: str, max_tokens: int = 1500) -> str:
     """Call Anthropic Haiku and return text content.
 
     Example:
         text = call_llm("You are concise.", "Say hello", max_tokens=50)
     """
-    load_dotenv()
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not api_key:
+    if CLIENT is None:
         raise RuntimeError("ANTHROPIC_API_KEY is missing. Set it in your .env file.")
 
-    client = Anthropic(api_key=api_key)
     try:
-        response = client.messages.create(
+        response = CLIENT.messages.create(
             model=MODEL,
             max_tokens=max_tokens,
-            system=system_prompt,
+            system=system,
             messages=[{"role": "user", "content": user_message}],
         )
     except Exception as exc:
         logger.error("Anthropic API call failed: %s", exc)
-        raise RuntimeError("Anthropic API call failed.") from exc
+        raise RuntimeError(f"Anthropic API call failed: {exc}") from exc
 
     text_blocks = [block.text for block in response.content if hasattr(block, "text")]
     result = "\n".join(part for part in text_blocks if part).strip()

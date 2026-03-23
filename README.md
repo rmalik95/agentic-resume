@@ -2,6 +2,35 @@
 
 ResumAI PRD-aligned local multi-agent resume pipeline.
 
+## One-Command Run
+
+Use this from the repo root to install dependencies and run the full pipeline:
+
+```bash
+./run_resumai.sh
+```
+
+For first-time setup only, you can also run a dedicated installer:
+
+```bash
+./install_resumai.sh
+```
+
+The script will:
+- create `.venv` if missing,
+- install dependencies from `requirements.txt`,
+- create `.env` from `.env.example` if needed,
+- install Context Hub tooling with `npm install` when `package.json` is present,
+- run `main.py` with `--no-notify` by default.
+
+Pass any normal CLI args through the same command:
+
+```bash
+./run_resumai.sh --resume-file /path/to/resume.txt --job-file /path/to/jd.txt
+./run_resumai.sh --company-url https://company.com/about
+./run_resumai.sh --help
+```
+
 ## Implemented From PRD
 
 The following code-side tasks are now implemented in this repository:

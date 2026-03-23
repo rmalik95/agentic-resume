@@ -21,7 +21,7 @@ class ExperienceOptimizerAgent(BaseAgent):
             f"Missing keywords to incorporate:\n{keywords_text}\n\n"
             "Rewrite only the experience content."
         )
-        optimized = call_llm(self.system_prompt, user_message, max_tokens=1200)
+        optimized = call_llm(self.system_prompt, user_message, max_tokens=2000)
         state.optimized_experience = optimized.strip()
         state.review_flags = [line.strip() for line in state.optimized_experience.splitlines() if "[REVIEW]" in line]
         return state

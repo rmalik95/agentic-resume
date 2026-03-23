@@ -10,7 +10,7 @@ from input_collector import collect_multiline_input
 from state import ResumeState
 
 
-def print_report(state: ResumeState) -> None:
+def print_report(state: ResumeState, missing_keywords_added: list[str]) -> None:
     """Print PRD-style summary report.
 
     Example:
@@ -25,9 +25,11 @@ def print_report(state: ResumeState) -> None:
     print("=" * 60)
     print(f"Score before optimisation : {before}/100")
     print(f"Score after optimisation  : {after}/100 ({delta:+d} points)")
-    print(f"Missing keywords added    : {', '.join(state.missing_keywords) or 'None'}")
+    print(f"Missing keywords added    : {', '.join(missing_keywords_added) or 'None'}")
     print(f"ATS verdict               : {state.ats_verdict or 'Unknown'}")
     print(f"ATS issues                : {state.ats_fixes or 'None'}")
+    if state.score_analysis:
+        print(f"Score analysis            : {state.score_analysis}")
     print(f"Bullets flagged [REVIEW]  : {len(state.review_flags)}")
     if state.review_flags:
         print("-" * 60)
@@ -76,6 +78,18 @@ def _collect_inputs(args: argparse.Namespace) -> tuple[str, str]:
     return resume_text, job_description
 
 
+def _run_agent(agent_name: str, agent_obj: object, state: ResumeState) -> ResumeState:
+    """Run one agent with consistent status logging and clean failure output."""
+    print(f"[{agent_name}] running...")
+    try:
+        state = agent_obj.run(state)
+    except Exception as exc:
+        print(f"[{agent_name}] failed: {exc}")
+        raise SystemExit(1) from exc
+    print(f"[{agent_name}] done.")
+    return state
+
+
 def main() -> None:
     """CLI entry point for full sequential PRD pipeline.
 
@@ -102,39 +116,26 @@ def main() -> None:
     state = ResumeState(resume_text=resume_text, job_description=job_description)
     state.company_url = args.company_url
 
-    print("[MatchScoreAgent] running...")
-    state = MatchScoreAgent().run(state)
-    print("[MatchScoreAgent] done.")
+    state = _run_agent("MatchScoreAgent", MatchScoreAgent(), state)
     print(f"(raw score: {state.match_score_before or 0}/100)")
+    missing_keywords_added = list(state.missing_keywords)
 
-    print("[ExperienceOptimizerAgent] running...")
-    state = ExperienceOptimizerAgent().run(state)
-    print("[ExperienceOptimizerAgent] done.")
+    state = _run_agent("ExperienceOptimizerAgent", ExperienceOptimizerAgent(), state)
     print(f"({len(state.review_flags)} bullets flagged [REVIEW])")
 
-    print("[ATSCheckerAgent] running...")
-    state = ATSCheckerAgent().run(state)
-    print("[ATSCheckerAgent] done.")
+    state = _run_agent("ATSCheckerAgent", ATSCheckerAgent(), state)
     print(f"(verdict: {state.ats_verdict or 'Unknown'})")
 
-    print("[CoverLetterAgent] running...")
-    state = CoverLetterAgent().run(state)
-    print("[CoverLetterAgent] done.")
+    state = _run_agent("CoverLetterAgent", CoverLetterAgent(), state)
 
-    print("[MatchScoreAgent] running...")
-    state = MatchScoreAgent().run(state)
-    print("[MatchScoreAgent] done.")
+    state = _run_agent("MatchScoreAgent", MatchScoreAgent(), state)
     print(f"(optimised score: {state.match_score_after or 0}/100)")
 
-    print("[LaTeXGeneratorAgent] running...")
-    state = LaTeXGeneratorAgent().run(state)
-    print("[LaTeXGeneratorAgent] done.")
+    state = _run_agent("LaTeXGeneratorAgent", LaTeXGeneratorAgent(), state)
 
-    print("[RendererAgent] running...")
-    state = RendererAgent().run(state)
-    print("[RendererAgent] done.")
+    state = _run_agent("RendererAgent", RendererAgent(), state)
 
-    print_report(state)
+    print_report(state, missing_keywords_added)
 
     if not args.no_notify:
         from notifier import send_outputs

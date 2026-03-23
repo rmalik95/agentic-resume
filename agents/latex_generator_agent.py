@@ -19,8 +19,9 @@ class LaTeXGeneratorAgent(BaseAgent):
             f"Cover letter content:\n{state.cover_letter or ''}\n\n"
             "Return two LaTeX documents separated by ---COVERLETTER---"
         )
-        response = call_llm(self.system_prompt, user_message, max_tokens=2000)
-        parts = response.split("---COVERLETTER---", maxsplit=1)
+        response = call_llm(self.system_prompt, user_message, max_tokens=3000)
+        cleaned = response.replace("```latex", "").replace("```", "").strip()
+        parts = cleaned.split("---COVERLETTER---", maxsplit=1)
         if len(parts) != 2:
             raise ValueError("LaTeXGeneratorAgent output missing ---COVERLETTER--- delimiter")
 

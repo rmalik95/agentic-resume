@@ -20,12 +20,22 @@ class MatchScoreAgent(BaseAgent):
         Example:
             state = MatchScoreAgent().run(state)
         """
-        resume_text = state.optimized_experience or state.resume_text
-        user_message = (
-            f"Resume:\n{resume_text}\n\n"
-            f"Job description:\n{state.job_description}\n\n"
-            "Return exactly the required output format."
-        )
+        if state.optimized_experience:
+            user_message = (
+                "Original full resume:\n"
+                f"{state.resume_text}\n\n"
+                "Optimized experience section (this replaces only the experience part):\n"
+                f"{state.optimized_experience}\n\n"
+                f"Job description:\n{state.job_description}\n\n"
+                "Score the resulting full resume after replacement. "
+                "Return exactly the required output format."
+            )
+        else:
+            user_message = (
+                f"Resume:\n{state.resume_text}\n\n"
+                f"Job description:\n{state.job_description}\n\n"
+                "Return exactly the required output format."
+            )
         response = call_llm(self.system_prompt, user_message, max_tokens=500)
 
         score_match = re.search(r"SCORE:\s*(\d{1,3})", response)
@@ -35,9 +45,9 @@ class MatchScoreAgent(BaseAgent):
 
         if not score_match:
             logger.error("Failed to parse SCORE from MatchScoreAgent response: %s", response)
-            raise ValueError("MatchScoreAgent response missing SCORE field")
-
-        score_value = int(score_match.group(1))
+            score_value = 0
+        else:
+            score_value = int(score_match.group(1))
         keywords = []
         if keywords_match:
             keywords = [item.strip() for item in keywords_match.group(1).split(",") if item.strip()]
