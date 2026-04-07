@@ -32,6 +32,11 @@ class CoverLetterAgent(BaseAgent):
         Example:
             state = CoverLetterAgent().run(state)
         """
+        cached_prefix = (
+            "Stable context for this application:\n"
+            f"Resume text:\n{state.resume_text}\n\n"
+            f"Job description:\n{state.job_description}"
+        )
         company_context = ""
         if state.company_url:
             print(f"  Fetching company context from {state.company_url}...")
@@ -43,11 +48,16 @@ class CoverLetterAgent(BaseAgent):
             if company_context
             else ""
         )
-        user_message = f"""
-Resume:\n{state.optimized_experience or state.resume_text}
-Job description:\n{state.job_description}
-{context_block}
-Write the cover letter.
-"""
-        state.cover_letter = call_llm(self.system_prompt, user_message, max_tokens=600)
+        user_message = (
+            f"Optimized experience section (if available):\n{state.optimized_experience or ''}"
+            f"{context_block}\n\n"
+            "Write the cover letter."
+        )
+        state.cover_letter = call_llm(
+            self.system_prompt,
+            user_message,
+            max_tokens=600,
+            cached_prefix=cached_prefix,
+            cache_system_prompt=True,
+        )
         return state

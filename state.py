@@ -13,6 +13,10 @@ class ResumeState:
     match_score_after: Optional[int] = None
     missing_keywords: list[str] = field(default_factory=list)
     score_analysis: Optional[str] = None
+    missing_keywords_before: list[str] = field(default_factory=list)
+    missing_keywords_after: list[str] = field(default_factory=list)
+    score_analysis_before: Optional[str] = None
+    score_analysis_after: Optional[str] = None
 
     # Agent 2 outputs
     optimized_experience: Optional[str] = None
@@ -37,3 +41,21 @@ class ResumeState:
     # Optional runtime enrichment for cover letter web context
     company_url: Optional[str] = None
     company_context: Optional[str] = None
+
+    # Input tracking
+    resume_pdf_path: Optional[str] = None  # original PDF path if PDF was supplied
+
+    # Output tracking
+    output_markdown_path: Optional[str] = None  # path to polished CV Markdown file
+
+    # Agent 0 outputs (Positioning Strategy)
+    positioning_strategy: Optional[str] = None
+
+    # Agent 1 outputs (JD Intelligence)
+    jd_analysis: Optional[str] = None
+
+    # Agent 2 outputs (Gap Analysis)
+    gap_analysis: Optional[str] = None
+
+    # Agent 4 expanded outputs (ATS QA Scan)
+    ats_qa_report: Optional[str] = None

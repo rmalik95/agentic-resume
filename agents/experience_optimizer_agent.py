@@ -14,14 +14,23 @@ class ExperienceOptimizerAgent(BaseAgent):
         Example:
             state = ExperienceOptimizerAgent().run(state)
         """
+        cached_prefix = (
+            "Stable context for this application:\n"
+            f"Resume text:\n{state.resume_text}\n\n"
+            f"Job description:\n{state.job_description}"
+        )
         keywords_text = ", ".join(state.missing_keywords) if state.missing_keywords else "None"
         user_message = (
-            f"Original resume:\n{state.resume_text}\n\n"
-            f"Job description:\n{state.job_description}\n\n"
             f"Missing keywords to incorporate:\n{keywords_text}\n\n"
             "Rewrite only the experience content."
         )
-        optimized = call_llm(self.system_prompt, user_message, max_tokens=2000)
+        optimized = call_llm(
+            self.system_prompt,
+            user_message,
+            max_tokens=2000,
+            cached_prefix=cached_prefix,
+            cache_system_prompt=True,
+        )
         state.optimized_experience = optimized.strip()
         state.review_flags = [line.strip() for line in state.optimized_experience.splitlines() if "[REVIEW]" in line]
         return state

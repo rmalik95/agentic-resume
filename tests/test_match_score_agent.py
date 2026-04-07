@@ -4,7 +4,13 @@ from state import ResumeState
 
 
 def test_match_score_agent_parses_response(monkeypatch):
-    def fake_call_llm(system_prompt: str, user_message: str, max_tokens: int = 500) -> str:
+    def fake_call_llm(
+        system_prompt: str,
+        user_message: str,
+        max_tokens: int = 500,
+        cached_prefix: str | None = None,
+        cache_system_prompt: bool = True,
+    ) -> str:
         return (
             "SCORE: 52\n"
             "KEYWORDS: stakeholder management, Python, data pipeline, Agile, Power BI\n"
@@ -26,3 +32,5 @@ def test_match_score_agent_parses_response(monkeypatch):
         "Power BI",
     ]
     assert "Limited quantified impact examples" in (updated.score_analysis or "")
+    assert updated.missing_keywords_before == updated.missing_keywords
+    assert updated.score_analysis_before == updated.score_analysis

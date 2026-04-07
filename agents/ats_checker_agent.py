@@ -20,10 +20,13 @@ class ATSCheckerAgent(BaseAgent):
         Example:
             state = ATSCheckerAgent().run(state)
         """
+        cached_prefix = (
+            "Stable context for this application:\n"
+            f"Resume text:\n{state.resume_text}\n\n"
+            f"Job description:\n{state.job_description}"
+        )
         if state.optimized_experience:
             user_message = (
-                "Original full resume:\n"
-                f"{state.resume_text}\n\n"
                 "Optimized experience section (this replaces only the experience part):\n"
                 f"{state.optimized_experience}\n\n"
                 "Audit ATS compatibility for the resulting full resume after replacement. "
@@ -31,12 +34,15 @@ class ATSCheckerAgent(BaseAgent):
                 "if present in the original full resume. Return in the requested format only."
             )
         else:
-            user_message = (
-                f"Resume text:\n{state.resume_text}\n\n"
-                "Return in the requested format only."
-            )
+            user_message = "Audit ATS compatibility for the original resume and return in the requested format only."
 
-        response = call_llm(self.system_prompt, user_message, max_tokens=700)
+        response = call_llm(
+            self.system_prompt,
+            user_message,
+            max_tokens=700,
+            cached_prefix=cached_prefix,
+            cache_system_prompt=True,
+        )
 
         verdict_match = re.search(r"VERDICT:\s*(.+)", response)
         summary_match = re.search(r"SUMMARY:\s*(.+)", response, flags=re.DOTALL)
